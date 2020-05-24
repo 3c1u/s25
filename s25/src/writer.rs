@@ -167,7 +167,6 @@ fn compress_image(rgba_image: &[u8], width: usize, height: usize) -> Result<(Vec
     for y in 0..height {
         row_offsets[y] = (row_data_offset + compress_buf.len()) as u32;
 
-
         let head = y * width * 4;
 
         // TODO: implement PackBits encoding & RGB (no-alpha) support
@@ -234,13 +233,16 @@ fn rewrite_susuko() {
         let meta1 = image.load_image(i);
         let meta2 = image2.load_image(i);
 
-
         if let (Ok(mut meta1), Ok(mut meta2)) = (meta1, meta2) {
             meta1.metadata.head = 0;
             meta2.metadata.head = 0;
 
             assert_eq!(meta1.metadata, meta2.metadata, "metadata wrong at: {}", i);
-            assert_eq!(meta1.rgba_buffer, meta2.rgba_buffer, "decode wrong at: {}", i);
+            assert_eq!(
+                meta1.rgba_buffer, meta2.rgba_buffer,
+                "decode wrong at: {}",
+                i
+            );
         }
     }
 }
