@@ -1,2 +1,2 @@
 [workspace]
-members = ["s25"]
+members = ["s25", "s25extract"]
