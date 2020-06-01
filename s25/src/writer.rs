@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use crate::reader::{S25Image, S25ImageMetadata};
 use crate::{Error, Result};
 
+/// A writer for .S25 format.
 pub struct S25Writer<A = File>
 where
     A: Write,
@@ -123,6 +124,7 @@ impl<T> S25Writer<T>
 where
     T: Write,
 {
+    /// Adds an image entry to an S25 archive.
     pub fn add_entry(&mut self, entry_no: i32, image: &S25Image) -> Result<()> {
         let metadata = image.metadata.clone();
 

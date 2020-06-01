@@ -7,6 +7,7 @@ use crate::{utils, Error, Result};
 const S25_MAGIC: &[u8; 4] = b"S25\0";
 const S25_BYTES_PER_PIXEL: usize = 4;
 
+/// An .S25 archive.
 pub struct S25Archive<A = File> {
     file: BufReader<A>,
     entries: Vec<Option<i32>>,
@@ -25,7 +26,7 @@ where
 }
 
 impl S25Archive<File> {
-    /// Loads an S25 archive.
+    /// Opens an S25 archive.
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
 
@@ -101,18 +102,26 @@ impl<A> S25Archive<A> {
 /// Metadata for an S25 image entry.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct S25ImageMetadata {
+    /// Width.
     pub width: i32,
+    /// Height.
     pub height: i32,
+    /// X-axis value of the image offset.
     pub offset_x: i32,
+    /// Y-axis value of the image offset.
     pub offset_y: i32,
+    /// Whether the image uses incremental encoding.
     pub incremental: bool,
-    pub head: i32,
+    /// POsition of image.
+    head: i32,
 }
 
 /// An S25 image entry.
 #[derive(Clone)]
 pub struct S25Image {
+    /// Metadata.
     pub metadata: S25ImageMetadata,
+    /// Uncompressed RGBA image buffer.
     pub rgba_buffer: Vec<u8>,
 }
 

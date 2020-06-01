@@ -45,3 +45,51 @@ fn main() {
         }
     }
 }
+
+/*
+#[test]
+fn append_susuko() {
+    use s25::S25Writer;
+
+    let mut writer = S25Writer::create("../test/SUSUKO_01LL(1).s25").unwrap();
+    let mut image = S25Archive::open("../test/SUSUKO_01LL.S25").unwrap();
+
+    let decoder = png::Decoder::new(File::open("../susuko/SUSUKO_01LL@4.png").unwrap());
+    let (info, mut reader) = decoder.read_info().unwrap();
+    let mut buf = vec![0; info.buffer_size()];
+    reader.next_frame(&mut buf).unwrap();
+
+    for i in 0..image.total_entries() {
+        if let Ok(image) = image.load_image(i) {
+            writer.add_entry(i as i32, &image).unwrap();
+
+            if i == 1 {
+                let mut image = image.clone();
+                image.rgba_buffer = buf.clone();
+                writer.add_entry(4, &image).unwrap();
+            }
+        }
+    }
+
+    writer.write().unwrap();
+    drop(writer);
+
+    let mut image2 = S25Archive::open("../test/susuko.s25").unwrap();
+    for i in 0..image.total_entries() {
+        let meta1 = image.load_image(i);
+        let meta2 = image2.load_image(i);
+
+        if let (Ok(mut meta1), Ok(mut meta2)) = (meta1, meta2) {
+            meta1.metadata.head = 0;
+            meta2.metadata.head = 0;
+
+            assert_eq!(meta1.metadata, meta2.metadata, "metadata wrong at: {}", i);
+            assert_eq!(
+                meta1.rgba_buffer, meta2.rgba_buffer,
+                "decode wrong at: {}",
+                i
+            );
+        }
+    }
+}
+ */
