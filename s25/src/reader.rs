@@ -112,8 +112,8 @@ pub struct S25ImageMetadata {
     pub offset_y: i32,
     /// Whether the image uses incremental encoding.
     pub incremental: bool,
-    /// POsition of image.
-    head: i32,
+    /// Position of image.
+    pub(crate) head: i32,
 }
 
 /// An S25 image entry.
@@ -121,8 +121,14 @@ pub struct S25ImageMetadata {
 pub struct S25Image {
     /// Metadata.
     pub metadata: S25ImageMetadata,
-    /// Uncompressed RGBA image buffer.
-    pub rgba_buffer: Vec<u8>,
+    /// Uncompressed image buffer.
+    pub bgra_buffer: Vec<u8>,
+}
+
+impl S25Image {
+    pub fn rgba_buffer(&self) -> Vec<u8> {
+        crate::utils::rgba_to_bgra(&self.bgra_buffer)
+    }
 }
 
 impl<A> S25Archive<A>
@@ -165,7 +171,7 @@ where
 
         Ok(S25Image {
             metadata,
-            rgba_buffer: buf,
+            bgra_buffer: buf,
         })
     }
 
@@ -184,24 +190,29 @@ where
         }
 
         let mut offset = 0;
-        let mut decode_buf = Vec::<u8>::with_capacity(metadata.width as usize);
+
+        let rows: Vec<_> = rows
+            .into_iter()
+            .map(|row_offset| -> Result<_> {
+                self.file.seek(SeekFrom::Start(row_offset as u64))?;
+                let row_length = utils::io::read_i16(&mut self.file)? as u16;
+
+                let row_length = if row_offset & 0x01 != 0 {
+                    self.file.read_exact(&mut [0u8])?; // 1バイトだけ読み飛ばす
+                    row_length & (!0x01)
+                } else {
+                    row_length
+                };
+                let mut decode_buf = vec![0; row_length as usize];
+                self.file.read_exact(&mut decode_buf)?;
+
+                Ok(decode_buf)
+            })
+            .collect();
 
         // すべての行を走査してデコードしていく
-        for row_offset in rows {
-            self.file.seek(SeekFrom::Start(row_offset as u64))?;
-            let row_length = utils::io::read_i16(&mut self.file)? as u16;
-
-            let row_length = if row_offset & 0x01 != 0 {
-                self.file.read_exact(&mut [0u8])?; // 1バイトだけ読み飛ばす
-                row_length & (!0x01)
-            } else {
-                row_length
-            };
-
-            decode_buf.resize(row_length as usize, 0u8);
-            self.file.read_exact(&mut decode_buf)?;
-
-            self.decode_line(&decode_buf, buf, &mut offset, metadata.width);
+        for row in rows {
+            self.decode_line(&row?, buf, &mut offset, metadata.width);
         }
 
         Ok(())
@@ -211,7 +222,6 @@ where
         use std::convert::TryFrom;
 
         let mut decode_counter = 0usize;
-
         let mut count_remaining = width;
 
         while count_remaining > 0 && decode_counter < decode_buf.len() {
@@ -251,9 +261,9 @@ where
                             break;
                         }
 
-                        buf[*offset] = decode_buf[decode_counter + 2];
+                        buf[*offset] = decode_buf[decode_counter];
                         buf[*offset + 1] = decode_buf[decode_counter + 1];
-                        buf[*offset + 2] = decode_buf[decode_counter];
+                        buf[*offset + 2] = decode_buf[decode_counter + 2];
                         buf[*offset + 3] = 0xff;
 
                         decode_counter += 3;
@@ -262,7 +272,7 @@ where
                 }
                 3 => {
                     // BGR fill
-                    if let [b, g, r] = decode_buf[decode_counter..][..3] {
+                    if let [r, g, b] = decode_buf[decode_counter..][..3] {
                         decode_counter += 3;
 
                         for _ in 0..count {
@@ -288,9 +298,9 @@ where
                             break;
                         }
 
-                        buf[*offset] = decode_buf[decode_counter + 3];
+                        buf[*offset] = decode_buf[decode_counter + 1];
                         buf[*offset + 1] = decode_buf[decode_counter + 2];
-                        buf[*offset + 2] = decode_buf[decode_counter + 1];
+                        buf[*offset + 2] = decode_buf[decode_counter + 3];
                         buf[*offset + 3] = decode_buf[decode_counter + 0];
 
                         decode_counter += 4;
@@ -299,7 +309,7 @@ where
                 }
                 5 => {
                     // ABGR fill
-                    if let [a, b, g, r] = decode_buf[decode_counter..][..4] {
+                    if let [a, r, g, b] = decode_buf[decode_counter..][..4] {
                         decode_counter += 4;
 
                         for _ in 0..count {

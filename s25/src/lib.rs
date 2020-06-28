@@ -1,13 +1,12 @@
 #![deny(clippy::all)]
 
-pub(crate) mod utils;
+pub mod utils;
 
 pub(crate) mod reader;
 pub(crate) mod writer;
 
 /// Result type.
 pub type Result<T> = std::result::Result<T, Error>;
-
 
 #[cfg(feature = "fail")]
 use failure::Fail;

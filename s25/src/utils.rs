@@ -1,4 +1,4 @@
-pub mod io {
+pub(crate) mod io {
     use std::io::Read;
 
     pub fn read_i16<R: Read>(mut reader: R) -> std::io::Result<i16> {
@@ -26,4 +26,20 @@ pub mod io {
         v.push(a[2]);
         v.push(a[3]);
     }
+}
+
+pub fn rgba_to_bgra(rgba: &[u8]) -> Vec<u8> {
+    assert!(rgba.len() & 0x03 == 0);
+
+    let mut bgra = vec![0; rgba.len()];
+
+    for i in 0..(rgba.len() >> 2) {
+        let i = i << 2;
+        bgra[i] = rgba[i + 2];
+        bgra[i + 1] = rgba[i + 1];
+        bgra[i + 2] = rgba[i + 0];
+        bgra[i + 3] = rgba[i + 3];
+    }
+
+    bgra
 }

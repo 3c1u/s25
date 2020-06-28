@@ -132,7 +132,7 @@ where
         assert!(metadata.height >= 0);
 
         let compressed = compress_image(
-            &image.rgba_buffer,
+            &image.bgra_buffer,
             metadata.width as usize,
             metadata.height as usize,
         )?;
@@ -241,7 +241,7 @@ fn rewrite_susuko() {
 
             assert_eq!(meta1.metadata, meta2.metadata, "metadata wrong at: {}", i);
             assert_eq!(
-                meta1.rgba_buffer, meta2.rgba_buffer,
+                meta1.bgra_buffer, meta2.bgra_buffer,
                 "decode wrong at: {}",
                 i
             );

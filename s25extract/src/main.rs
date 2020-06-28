@@ -41,7 +41,9 @@ fn main() {
             encoder.set_color(png::ColorType::RGBA);
             encoder.set_depth(png::BitDepth::Eight);
             let mut writer = encoder.write_header().unwrap();
-            writer.write_image_data(&img.rgba_buffer).unwrap();
+            writer
+                .write_image_data(&s25::utils::rgba_to_bgra(&img.bgra_buffer))
+                .unwrap();
         }
     }
 }
@@ -65,7 +67,7 @@ fn append_susuko() {
 
             if i == 1 {
                 let mut image = image.clone();
-                image.rgba_buffer = buf.clone();
+                image.rgba_buffer = s25::utils::rgba_to_bgra(buf.clone());
                 writer.add_entry(4, &image).unwrap();
             }
         }
