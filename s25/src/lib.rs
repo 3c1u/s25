@@ -9,21 +9,21 @@ pub(crate) mod writer;
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[cfg(feature = "fail")]
-use failure::Fail;
+use thiserror::Error;
 
 /// Error type.
 #[cfg(feature = "fail")]
-#[derive(Debug, Fail)]
+#[derive(Debug, Error)]
 pub enum Error {
-    #[fail(display = "io error: {:?}", _0)]
+    #[error("io error: {0:?}")]
     IoError(std::io::Error),
-    #[fail(display = "invalid archive")]
+    #[error("invalid archive")]
     InvalidArchive,
-    #[fail(display = "unsupported file format")]
+    #[error("unsupported file format")]
     UnsupportedFileFormat,
-    #[fail(display = "no entry")]
+    #[error("no entry")]
     NoEntry,
-    #[fail(display = "compression failed")]
+    #[error("compression failed")]
     CompressionFailed,
 }
 
