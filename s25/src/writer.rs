@@ -218,7 +218,9 @@ fn encode_count(count: u16, method: u16, skip: u16) -> u16 {
 fn rewrite_susuko() {
     use crate::S25Archive;
 
-    let mut writer = S25Writer::create("../test/susuko.s25").unwrap();
+    let _ = std::fs::create_dir_all("../test/tmp");
+
+    let mut writer = S25Writer::create("../test/tmp/susuko.s25").unwrap();
     let mut image = S25Archive::open("../test/SUSUKO_01LL.S25").unwrap();
 
     for i in 0..image.total_entries() {
@@ -230,7 +232,7 @@ fn rewrite_susuko() {
     writer.write().unwrap();
     drop(writer);
 
-    let mut image2 = S25Archive::open("../test/susuko.s25").unwrap();
+    let mut image2 = S25Archive::open("../test/tmp/susuko.s25").unwrap();
     for i in 0..image.total_entries() {
         let meta1 = image.load_image(i);
         let meta2 = image2.load_image(i);
