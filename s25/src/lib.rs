@@ -4,9 +4,10 @@ pub mod utils;
 
 pub(crate) mod reader;
 pub(crate) mod writer;
+pub(crate) mod decoder;
 
 /// Result type.
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, Error>;
 
 #[cfg(feature = "fail")]
 use thiserror::Error;
@@ -30,6 +31,7 @@ pub enum Error {
 #[cfg(not(feature = "fail"))]
 #[derive(Debug)]
 pub enum Error {
+    #[cfg(feature = "std")]
     IoError(std::io::Error),
     InvalidArchive,
     UnsupportedFileFormat,
@@ -37,6 +39,7 @@ pub enum Error {
     CompressionFailed,
 }
 
+#[cfg(feature = "std")]
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
         Self::IoError(e)

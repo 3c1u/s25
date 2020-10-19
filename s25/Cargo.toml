@@ -16,5 +16,9 @@ keywords = ["s25", "image", "decoder", "vn", "shiina-rio"]
 thiserror = { version = "1.0.20", optional = true }
 
 [features]
-default = []
+default = ["std"]
+std = []
 fail = ["thiserror"]
+
+[dev-dependencies]
+png = "0.16.7"

@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::Path;
 
-use crate::{utils, Error, Result};
+use crate::{decoder, utils, Error, Result};
 
 const S25_MAGIC: &[u8; 4] = b"S25\0";
 const S25_BYTES_PER_PIXEL: usize = 4;
@@ -191,9 +191,9 @@ where
 
         let mut offset = 0;
 
-        let rows: Vec<_> = rows
+        rows
             .into_iter()
-            .map(|row_offset| -> Result<_> {
+            .try_for_each(|row_offset| -> Result<()> {
                 self.file.seek(SeekFrom::Start(row_offset as u64))?;
                 let row_length = utils::io::read_i16(&mut self.file)? as u16;
 
@@ -206,137 +206,19 @@ where
                 let mut decode_buf = vec![0; row_length as usize];
                 self.file.read_exact(&mut decode_buf)?;
 
-                Ok(decode_buf)
-            })
-            .collect();
+                decoder::decode_line(&decode_buf, buf, &mut offset, metadata.width);
+
+                Ok(())
+            })?;
 
         // すべての行を走査してデコードしていく
-        for row in rows {
-            self.decode_line(&row?, buf, &mut offset, metadata.width);
-        }
+        // for row in rows {
+        //     decoder::decode_line(&row?, buf, &mut offset, metadata.width);
+        // }
 
         Ok(())
     }
-
-    fn decode_line(&mut self, decode_buf: &[u8], buf: &mut [u8], offset: &mut usize, width: i32) {
-        use std::convert::TryFrom;
-
-        let mut decode_counter = 0usize;
-        let mut count_remaining = width;
-
-        while count_remaining > 0 && decode_counter < decode_buf.len() {
-            // 偶数で正規化
-            decode_counter += decode_counter & 0x01;
-
-            let count = u16::from_le_bytes(
-                *<&[u8; 2]>::try_from(&decode_buf[decode_counter..][..2]).unwrap(),
-            );
-            decode_counter += 2;
-
-            let (method, skip) = (count >> 13, (count >> 11) & 0x03);
-            decode_counter += skip as usize;
-
-            let count = {
-                let count = count & 0x7ff;
-                if count == 0 {
-                    // 拡張カウント
-                    let new_count = i32::from_le_bytes(
-                        *<&[u8; 4]>::try_from(&decode_buf[decode_counter..][..4]).unwrap(),
-                    );
-                    decode_counter += 4;
-                    new_count
-                } else {
-                    count as i32
-                }
-                .min(count_remaining)
-            };
-
-            count_remaining -= count;
-
-            match method {
-                2 => {
-                    // BGR
-                    for _ in 0..count {
-                        if buf.len() < (*offset + 4) || decode_buf.len() <= (decode_counter + 2) {
-                            break;
-                        }
-
-                        buf[*offset] = decode_buf[decode_counter];
-                        buf[*offset + 1] = decode_buf[decode_counter + 1];
-                        buf[*offset + 2] = decode_buf[decode_counter + 2];
-                        buf[*offset + 3] = 0xff;
-
-                        decode_counter += 3;
-                        *offset += 4;
-                    }
-                }
-                3 => {
-                    // BGR fill
-                    if let [r, g, b] = decode_buf[decode_counter..][..3] {
-                        decode_counter += 3;
-
-                        for _ in 0..count {
-                            if buf.len() < (*offset + 4) {
-                                break;
-                            }
-
-                            buf[*offset] = r;
-                            buf[*offset + 1] = g;
-                            buf[*offset + 2] = b;
-                            buf[*offset + 3] = 0xff;
-
-                            *offset += 4;
-                        }
-                    } else {
-                        unreachable!();
-                    }
-                }
-                4 => {
-                    // ABGR
-                    for _ in 0..count {
-                        if buf.len() < (*offset + 4) {
-                            break;
-                        }
-
-                        buf[*offset] = decode_buf[decode_counter + 1];
-                        buf[*offset + 1] = decode_buf[decode_counter + 2];
-                        buf[*offset + 2] = decode_buf[decode_counter + 3];
-                        buf[*offset + 3] = decode_buf[decode_counter + 0];
-
-                        decode_counter += 4;
-                        *offset += 4;
-                    }
-                }
-                5 => {
-                    // ABGR fill
-                    if let [a, r, g, b] = decode_buf[decode_counter..][..4] {
-                        decode_counter += 4;
-
-                        for _ in 0..count {
-                            if buf.len() < (*offset + 4) {
-                                break;
-                            }
-
-                            buf[*offset] = r;
-                            buf[*offset + 1] = g;
-                            buf[*offset + 2] = b;
-                            buf[*offset + 3] = a;
-                            *offset += 4;
-                        }
-                    } else {
-                        unreachable!();
-                    }
-                }
-                _ => {
-                    if count < 0 {
-                        *offset -= (-count) as usize * 4;
-                    } else {
-                        *offset += count as usize * 4;
-                    }
-                }
-            }
-        }
-    }
+    // fn read_line(&mut self) {}
 
     // incremental S25
     fn unpack_incremental(&mut self, metadata: &S25ImageMetadata, buf: &mut [u8]) -> Result<()> {
@@ -345,6 +227,19 @@ where
 
         Err(Error::UnsupportedFileFormat)
     }
+}
 
-    // fn read_line(&mut self) {}
+#[test]
+fn read_touka() {
+    let mut s25 = S25Archive::open("../test/KCG05.S25").unwrap();
+    let image = s25.load_image(102).unwrap();
+
+    let decoder = png::Decoder::new(File::open("../test/touka.png").unwrap());
+    let (info, mut reader) = decoder.read_info().unwrap();
+    let mut buf = vec![0u8; info.buffer_size()];
+    reader.next_frame(&mut buf).unwrap();
+
+    let image_2 = crate::utils::rgba_to_bgra(&buf);
+
+    assert_eq!(image.bgra_buffer, image_2);
 }

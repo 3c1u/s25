@@ -154,10 +154,10 @@ where
 const METHOD_ABGR: u16 = 4;
 // const METHOD_ABGR_FILL: u16 = 5;
 
-fn compress_image(rgba_image: &[u8], width: usize, height: usize) -> Result<(Vec<u32>, Vec<u8>)> {
+fn compress_image(bgra_image: &[u8], width: usize, height: usize) -> Result<(Vec<u32>, Vec<u8>)> {
     use crate::utils;
 
-    assert_eq!(rgba_image.len(), width * height * 4);
+    assert_eq!(bgra_image.len(), width * height * 4);
 
     let mut row_offsets = vec![0u32; height];
 
@@ -188,10 +188,10 @@ fn compress_image(rgba_image: &[u8], width: usize, height: usize) -> Result<(Vec
         for i in 0..width {
             let offset = i * 4 + head;
 
-            row_buf.push(rgba_image[offset + 3]);
-            row_buf.push(rgba_image[offset + 2]);
-            row_buf.push(rgba_image[offset + 1]);
-            row_buf.push(rgba_image[offset + 0]);
+            row_buf.push(bgra_image[offset + 3]);
+            row_buf.push(bgra_image[offset + 0]);
+            row_buf.push(bgra_image[offset + 1]);
+            row_buf.push(bgra_image[offset + 2]);
         }
 
         // write row length
