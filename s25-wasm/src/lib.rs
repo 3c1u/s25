@@ -12,13 +12,12 @@ extern crate wasm_bindgen;
 pub mod io;
 
 use byteorder::LittleEndian;
-use js_sys::Int8Array;
+use js_sys::{Uint8Array, Int32Array};
 use wasm_bindgen::prelude::*;
 
 use crate::io::{ArrayCursor, Read};
 
 use alloc::vec;
-use alloc::format;
 use vec::Vec;
 
 #[wasm_bindgen]
@@ -38,21 +37,16 @@ pub struct S25 {
 
 #[wasm_bindgen]
 impl S25 {
-    pub fn open(array: Int8Array) -> Option<S25> {
+    pub fn open(array: Uint8Array) -> Option<S25> {
         let mut cursor = ArrayCursor::new(array);
 
         let mut magic_buf = [0u8; 4];
         cursor.read_exact(&mut magic_buf).ok()?;
         if &magic_buf != s25_core::format::S25_MAGIC {
-            error("invalid magic");
             return None;
         }
 
-        log(&format!(".S25: magic: {:?}", magic_buf));
-
         let total_entries = cursor.read_i32::<LittleEndian>().ok()?;
-
-        log(&format!(".S25: total entries: {}", total_entries));
 
         let mut entries = vec![];
 
@@ -79,7 +73,21 @@ impl S25 {
             .is_some()
     }
 
-    pub fn decode(&mut self, entry: u32) -> Option<Int8Array> {
+    pub fn get_size(&mut self, entry: u32) -> Option<Int32Array> {
+        use s25_core::format::S25ImageMetadata;
+
+        if !self.exists(entry) {
+            return None;
+        }
+
+        let offset = self.entries.get(entry as usize).unwrap().unwrap();
+        let metadata = S25ImageMetadata::read_from(&mut self.cursor, offset).ok()?;
+        let size = &[metadata.width, metadata.height][..];
+
+        Some(Int32Array::from(size))
+    }
+
+    pub fn decode(&mut self, entry: u32) -> Option<Uint8Array> {
         use s25_core::format::S25ImageMetadata;
 
         if !self.exists(entry) {
@@ -93,8 +101,33 @@ impl S25 {
 
         s25_core::decoder::unpack_non_incremental(&mut self.cursor, &metadata, &mut buf).ok()?;
 
-        let buf: &[i8] =
-            unsafe { core::slice::from_raw_parts(buf.as_ptr() as *const i8, buf.len()) };
-        Some(Int8Array::from(buf))
+        Some(Uint8Array::from(&buf[..]))
+    }
+
+    pub fn decode_rgba(&mut self, entry: u32) -> Option<Uint8Array> {
+        use s25_core::format::S25ImageMetadata;
+
+        if !self.exists(entry) {
+            return None;
+        }
+
+        let offset = self.entries.get(entry as usize).unwrap().unwrap();
+        let metadata = S25ImageMetadata::read_from(&mut self.cursor, offset).ok()?;
+
+        let mut buf = vec![0u8; (metadata.width * metadata.height * 4) as usize];
+
+        s25_core::decoder::unpack_non_incremental(&mut self.cursor, &metadata, &mut buf).ok()?;
+
+        for i in 0..(buf.len() >> 2) {
+            let offset = i << 2;
+            if let [ b, g, r, a] = buf[offset..][..4] {
+                buf[offset] = r;
+                buf[offset + 1] = g;
+                buf[offset + 2] = b;
+                buf[offset + 3] = a;
+            }
+        }
+
+        Some(Uint8Array::from(&buf[..]))
     }
 }

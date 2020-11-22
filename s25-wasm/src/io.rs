@@ -1,13 +1,13 @@
-use js_sys::Int8Array;
+use js_sys::Uint8Array;
 pub use s25_core::io::{self, *};
 
 pub struct ArrayCursor {
     pub position: u32,
-    pub array: Int8Array,
+    pub array: Uint8Array,
 }
 
 impl ArrayCursor {
-    pub fn new(array: Int8Array) -> Self {
+    pub fn new(array: Uint8Array) -> Self {
         Self {
             position: 0,
             array,
