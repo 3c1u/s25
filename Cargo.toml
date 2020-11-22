@@ -1,2 +1,2 @@
 [workspace]
-members = ["s25", "s25-core", "s25extract"]
+members = ["s25", "s25-core", "s25extract", "s25-wasm"]

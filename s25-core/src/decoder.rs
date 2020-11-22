@@ -122,6 +122,7 @@ pub fn decode_line(decode_buf: &[u8], buf: &mut [u8], offset: &mut usize, width:
     }
 }
 
+#[cfg(not(any(feature = "alloc", feature = "std")))]
 pub fn unpack_non_incremental<R: Read + Seek>(file: &mut R, metadata: &S25ImageMetadata, buf: &mut [u8]) 
 -> crate::io::Result<()> {
     const MAX_HEIGHT: usize = 4098;
@@ -157,7 +158,45 @@ pub fn unpack_non_incremental<R: Read + Seek>(file: &mut R, metadata: &S25ImageM
             panic!("cannot unpack an image with the row size of more than MAX_ROW_BUF.");
         }
 
-        let mut decode_buf = &mut [0; MAX_ROW_BUF][..];
+        let decode_buf = &mut [0; MAX_ROW_BUF][..];
+        file.read_exact(decode_buf)?;
+
+        decode_line(&decode_buf, buf, &mut offset, metadata.width);
+
+        Ok(())
+    })?;
+
+    Ok(())
+}
+
+#[cfg(any(feature = "alloc", feature = "std"))]
+pub fn unpack_non_incremental<R: Read + Seek>(file: &mut R, metadata: &S25ImageMetadata, buf: &mut [u8]) 
+-> crate::io::Result<()> {
+    use alloc::vec;
+
+    // データ開始位置にカーソルを移動
+    file.seek(SeekFrom::Start(metadata.head as u64))?;
+
+    // non-incrementalな画像エントリーをロードする
+    let mut rows = vec![0u32; metadata.height as usize];
+    for i in 0..metadata.height as usize {
+        rows[i] = file.read_u32::<LittleEndian>()?;
+    }
+
+    let mut offset = 0;
+
+    rows.iter().try_for_each(|&row_offset| -> crate::io::Result<()> {
+        file.seek(SeekFrom::Start(row_offset as u64))?;
+        let row_length = file.read_u16::<LittleEndian>()?;
+
+        let row_length = if row_offset & 0x01 != 0 {
+            file.read_exact(&mut [0u8])?; // 1バイトだけ読み飛ばす
+            row_length & (!0x01)
+        } else {
+            row_length
+        } as usize;
+
+        let mut decode_buf = vec![0; row_length as usize];
         file.read_exact(&mut decode_buf)?;
 
         decode_line(&decode_buf, buf, &mut offset, metadata.width);
