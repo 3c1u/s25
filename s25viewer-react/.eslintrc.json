@@ -1,0 +1,59 @@
+{
+    "env": {
+        "browser": true,
+        "es2021": true
+    },
+    "extends": [
+        "airbnb",
+        "eslint:recommended",
+        "plugin:@typescript-eslint/eslint-recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:react/recommended",
+        "plugin:prettier/recommended",
+        "prettier/@typescript-eslint",
+        "prettier/react",
+        "plugin:react-hooks/recommended"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaFeatures": {
+            "jsx": true
+        },
+        "ecmaVersion": 12,
+        "sourceType": "module",
+        "project": "./tsconfig.json"
+    },
+    "plugins": ["react", "@typescript-eslint", "prettier", "react-hooks"],
+    "rules": {
+        "react/jsx-filename-extension": [2, { "extensions": [".tsx", ".jsx"] }],
+        "@typescript-eslint/triple-slash-reference": "off",
+        "import/extensions": [
+            "error",
+            "ignorePackages",
+            {
+                "js": "never",
+                "jsx": "never",
+                "ts": "never",
+                "tsx": "never"
+            }
+        ],
+        "@typescript-eslint/no-unused-vars": [
+            "error",
+            {
+                "argsIgnorePattern": "^_"
+            }
+        ],
+        "react-hooks/rules-of-hooks": "error",
+        "react-hooks/exhaustive-deps": "error",
+        "no-use-before-define": [0],
+        "@typescript-eslint/no-use-before-define": [1]
+    },
+    "settings": {
+        "import/resolver": {
+            "parcel": {
+                "rootDir": "src",
+                "extensions": [".ts", ".tsx"]
+            }
+        }
+    }
+}

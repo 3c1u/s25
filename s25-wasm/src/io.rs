@@ -23,11 +23,13 @@ impl Read for ArrayCursor {
         for i in 0..size {
             let offset = i as u32 + self.position;
             if len <= offset {
+                self.position += i as u32;
                 return Ok(i);
             }
             buf[i] = self.array.get_index(offset) as u8;
         }
 
+        self.position += size as u32;
         Ok(size)
     }
 }

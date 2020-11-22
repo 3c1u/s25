@@ -18,7 +18,17 @@ use wasm_bindgen::prelude::*;
 use crate::io::{ArrayCursor, Read};
 
 use alloc::vec;
+use alloc::format;
 use vec::Vec;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    fn error(s: &str);
+}
 
 #[wasm_bindgen]
 pub struct S25 {
@@ -34,10 +44,15 @@ impl S25 {
         let mut magic_buf = [0u8; 4];
         cursor.read_exact(&mut magic_buf).ok()?;
         if &magic_buf != s25_core::format::S25_MAGIC {
+            error("invalid magic");
             return None;
         }
 
+        log(&format!(".S25: magic: {:?}", magic_buf));
+
         let total_entries = cursor.read_i32::<LittleEndian>().ok()?;
+
+        log(&format!(".S25: total entries: {}", total_entries));
 
         let mut entries = vec![];
 
