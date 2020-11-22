@@ -1,32 +1,36 @@
 use std::fs::File;
-use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::io::BufReader;
 use std::path::Path;
 
-use crate::{utils, Error, Result};
+use crate::{Error, Result};
 use s25_core::decoder;
-use s25_core::format::{S25_BYTES_PER_PIXEL, S25_MAGIC, S25ImageMetadata};
+use s25_core::format::{S25ImageMetadata, S25_BYTES_PER_PIXEL, S25_MAGIC};
+
+use byteorder::LittleEndian;
+use core_io::{Read, Seek, SeekFrom};
+use s25_core::io as core_io;
 
 /// An .S25 archive.
 pub struct S25Archive<A = File> {
-    file: BufReader<A>,
+    file: A,
     entries: Vec<Option<i32>>,
 }
 
 impl<T> From<T> for S25Archive<T>
 where
-    T: Read + Seek,
+    T: std::io::Read + std::io::Seek,
 {
     fn from(t: T) -> Self {
         Self {
-            file: BufReader::new(t),
+            file: t,
             entries: Default::default(),
         }
     }
 }
 
-impl S25Archive<File> {
+impl S25Archive<()> {
     /// Opens an S25 archive.
-    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<S25Archive<BufReader<File>>> {
         let path = path.as_ref();
 
         let file = File::open(path)?;
@@ -38,7 +42,7 @@ impl S25Archive<File> {
             return Err(Error::InvalidArchive);
         }
 
-        let total_entries = utils::io::read_i32(&mut file)?;
+        let total_entries = file.read_i32::<LittleEndian>()?;
 
         let mut entries = vec![];
 
@@ -52,17 +56,12 @@ impl S25Archive<File> {
 
         Ok(S25Archive { file, entries })
     }
-}
 
-impl<'a> S25Archive<std::io::Cursor<&'a [u8]>> {
     /// Loads an S25 archive from raw bytes.
-    pub fn from_raw_bytes<'b>(bytes: &'b [u8]) -> Result<Self>
-    where
-        'b: 'a,
-    {
+    pub fn from_raw_bytes<'a>(bytes: &'a [u8]) -> Result<S25Archive<std::io::Cursor<&'a [u8]>>> {
         use std::io::Cursor;
 
-        let mut file = BufReader::new(Cursor::new(bytes));
+        let mut file = Cursor::new(bytes);
 
         let mut magic_buf = [0u8; 4];
         file.read_exact(&mut magic_buf)?;
@@ -70,7 +69,7 @@ impl<'a> S25Archive<std::io::Cursor<&'a [u8]>> {
             return Err(Error::InvalidArchive);
         }
 
-        let total_entries = utils::io::read_i32(&mut file)?;
+        let total_entries = file.read_i32::<LittleEndian>()?;
 
         let mut entries = vec![];
 
@@ -128,11 +127,11 @@ where
 
         self.file.seek(SeekFrom::Start(offset as u64))?;
 
-        let width = utils::io::read_i32(&mut self.file)?;
-        let height = utils::io::read_i32(&mut self.file)?;
-        let offset_x = utils::io::read_i32(&mut self.file)?;
-        let offset_y = utils::io::read_i32(&mut self.file)?;
-        let incremental = 0 != (utils::io::read_i32(&mut self.file)? as u32 & 0x80000000);
+        let width = self.file.read_i32::<LittleEndian>()?;
+        let height = self.file.read_i32::<LittleEndian>()?;
+        let offset_x = self.file.read_i32::<LittleEndian>()?;
+        let offset_y = self.file.read_i32::<LittleEndian>()?;
+        let incremental = 0 != (self.file.read_u32::<LittleEndian>()? & 0x80000000);
 
         Ok(S25ImageMetadata {
             width,
@@ -168,30 +167,28 @@ where
         // non-incrementalな画像エントリーをロードする
         let mut rows = Vec::with_capacity(metadata.height as usize);
         for _ in 0..metadata.height {
-            rows.push(utils::io::read_i32(&mut self.file)? as u32);
+            rows.push(self.file.read_i32::<LittleEndian>()? as u32);
         }
 
         let mut offset = 0;
 
-        rows
-            .into_iter()
-            .try_for_each(|row_offset| -> Result<()> {
-                self.file.seek(SeekFrom::Start(row_offset as u64))?;
-                let row_length = utils::io::read_i16(&mut self.file)? as u16;
+        rows.into_iter().try_for_each(|row_offset| -> Result<()> {
+            self.file.seek(SeekFrom::Start(row_offset as u64))?;
+            let row_length = self.file.read_u16::<LittleEndian>()?;
 
-                let row_length = if row_offset & 0x01 != 0 {
-                    self.file.read_exact(&mut [0u8])?; // 1バイトだけ読み飛ばす
-                    row_length & (!0x01)
-                } else {
-                    row_length
-                };
-                let mut decode_buf = vec![0; row_length as usize];
-                self.file.read_exact(&mut decode_buf)?;
+            let row_length = if row_offset & 0x01 != 0 {
+                self.file.read_exact(&mut [0u8])?; // 1バイトだけ読み飛ばす
+                row_length & (!0x01)
+            } else {
+                row_length
+            };
+            let mut decode_buf = vec![0; row_length as usize];
+            self.file.read_exact(&mut decode_buf)?;
 
-                decoder::decode_line(&decode_buf, buf, &mut offset, metadata.width);
+            decoder::decode_line(&decode_buf, buf, &mut offset, metadata.width);
 
-                Ok(())
-            })?;
+            Ok(())
+        })?;
 
         // すべての行を走査してデコードしていく
         // for row in rows {

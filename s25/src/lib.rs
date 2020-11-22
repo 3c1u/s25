@@ -15,8 +15,10 @@ use thiserror::Error;
 #[cfg(feature = "fail")]
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("io error: {0:?}")]
-    IoError(std::io::Error),
+    #[error("io error (s25_core): {0:?}")]
+    IoError(s25_core::io::Error),
+    #[error("io error (std): {0:?}")]
+    StdIoError(std::io::Error),
     #[error("invalid archive")]
     InvalidArchive,
     #[error("unsupported file format")]
@@ -30,18 +32,25 @@ pub enum Error {
 #[cfg(not(feature = "fail"))]
 #[derive(Debug)]
 pub enum Error {
+    IoError(s25_core::io::Error),
     #[cfg(feature = "std")]
-    IoError(std::io::Error),
+    StdIoError(std::io::Error),
     InvalidArchive,
     UnsupportedFileFormat,
     NoEntry,
     CompressionFailed,
 }
 
+impl From<s25_core::io::Error> for Error {
+    fn from(e: s25_core::io::Error) -> Self {
+        Self::IoError(e)
+    }
+}
+
 #[cfg(feature = "std")]
 impl From<std::io::Error> for Error {
     fn from(e: std::io::Error) -> Self {
-        Self::IoError(e)
+        Self::StdIoError(e)
     }
 }
 
