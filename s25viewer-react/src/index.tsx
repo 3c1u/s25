@@ -3,18 +3,25 @@
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 
-import init from 's25-wasm'
-import wasm from 's25-wasm/s25_wasm_bg.wasm'
+import { createStore } from 'redux'
+import { Provider } from 'react-redux'
 
-import DropZone from './components/atoms/DropZone'
+import init from 's25-wasm' // eslint-disable-line import/no-unresolved
+import wasm from 's25-wasm/s25_wasm_bg.wasm' // eslint-disable-line import/no-unresolved
 
-(async () => {
+import reducer from './reducers'
+import App from './components/organisms/App'
+
+const run = async () => {
     await init(wasm)
+    const store = createStore(reducer)
 
     ReactDOM.render(
-        <div>
-            <DropZone />
-        </div>,
+        <Provider store={store}>
+            <App />
+        </Provider>,
         document.getElementById('app'),
     )
-})()
+}
+
+run()

@@ -1,32 +1,50 @@
 import * as React from 'react'
-import * as ReactDOM from 'react-dom'
-
-import { S25 } from 's25-wasm'
+import { S25 } from 's25-wasm' // eslint-disable-line import/no-unresolved
 
 export interface DropZoneProps {
     onChange?(value: FileList): void
     value?: FileList
 }
 
-const dropZoneStyle = {
-    border: '1px solid #ccc',
-    backgroundColor: '#fff',
-}
-
-export default function DropZone(props: DropZoneProps) {
+export default function DropZone(props: DropZoneProps): JSX.Element {
     const [dragEntered, setDragEntered] = React.useState(false)
     const [s25, setS25] = React.useState(null as S25 | null)
     const [name, setName] = React.useState(null as string | null)
-    const [ctx, setCtx] = React.useState(null as CanvasRenderingContext2D | null)
+    const [ctx, setCtx] = React.useState(
+        null as CanvasRenderingContext2D | null,
+    )
+    const [entry, setEntry] = React.useState(0)
 
     const canvas = React.useRef(null as HTMLCanvasElement | null)
+
     React.useEffect(() => {
         setCtx(canvas.current?.getContext('2d') ?? null)
 
-        return (() => {
+        return () => {
             setCtx(null)
-        })
-    })
+        }
+    }, [ctx])
+
+    React.useEffect(() => {
+        if (s25 === null || ctx === null) {
+            return
+        }
+
+        const size = s25.get_size(entry) ?? null
+        if (size === null) {
+            return
+        }
+
+        const decoded = s25.decode_rgba(entry) ?? null
+        if (decoded === null) {
+            return
+        }
+
+        const imageData = new ImageData(new Uint8ClampedArray(decoded), size[0])
+
+        ctx.clearRect(0, 0, 1600, 900)
+        ctx.putImageData(imageData, 0, 0)
+    }, [s25, ctx, entry])
 
     return (
         <div>
@@ -34,21 +52,40 @@ export default function DropZone(props: DropZoneProps) {
                 {(() => {
                     if (s25 === null) {
                         return 'Drop an .S25 image file!'
-                    } else {
-                        return `${name} has ${s25.total_entries() ?? 'no'} entrie(s)`
                     }
+
+                    if (dragEntered) {
+                        return 'Drag entered!'
+                    }
+
+                    return `${name} has ${s25.total_entries() ?? 'no'} entries`
                 })()}
+                <input
+                    type="text"
+                    value={entry}
+                    onChange={event => {
+                        const value = parseInt(event.target.value, 10)
+                        if (!Number.isNaN(value)) {
+                            setEntry(value)
+                        } else if (event.target.value === '') {
+                            setEntry(0)
+                        }
+                    }}
+                />
             </p>
-            <canvas ref={canvas} width={1600} height={900}
-                onDragOver={(event => {
+            <canvas
+                ref={canvas}
+                width={1600}
+                height={900}
+                onDragOver={event => {
                     event.preventDefault()
                     setDragEntered(true)
-                })}
-                onDragLeave={(event => {
+                }}
+                onDragLeave={event => {
                     event.preventDefault()
                     setDragEntered(false)
-                })}
-                onDrop={(async event => {
+                }}
+                onDrop={async event => {
                     event.preventDefault()
                     event.stopPropagation()
                     setDragEntered(false)
@@ -73,27 +110,8 @@ export default function DropZone(props: DropZoneProps) {
                     const fileBuffer = await file.arrayBuffer()
                     const newS25 = S25.open(new Uint8Array(fileBuffer)) ?? null
                     setS25(newS25)
-
-                    if (newS25 === null || ctx === null) {
-                        console.error('failed to open .S25')
-                        return
-                    }
-
-                    const size = newS25.get_size(1) ?? null
-                    if (size === null) {
-                        console.error('cannot obtain size: missing entry?')
-                        return
-                    }
-
-                    const decoded = newS25.decode_rgba(1) ?? null
-                    if (decoded === null) {
-                        console.error('cannot obtain buffer: missing entry?')
-                        return
-                    }
-
-                    const imageData = new ImageData(new Uint8ClampedArray(decoded), size[0])
-                    ctx.putImageData(imageData, 0, 0)
-                })}>
-            </canvas>
-        </div>)
+                }}
+            />
+        </div>
+    )
 }

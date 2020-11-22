@@ -38,7 +38,7 @@
         "serve": "webpack serve --hot --inline --watch-content-base --content-base public/ --open-page index.html",
         "deploy": "webpack",
         "clean": "rimraf dist",
-        "fmt": "yarn fmt:json && yarn fmt:ts && yarn fmt:stylus",
+        "fmt": "yarn fmt:ts && yarn fmt:stylus",
         "fmt:json": "prettier --write \"./**/*.{json,prettierrc,parcelrc,postcssrc}\"",
         "fmt:ts": "prettier --write \"./src/**/*.{ts,tsx}\"",
         "fmt:ts:dry": "prettier --check \"./src/**/*.{ts,tsx}\"",
@@ -51,8 +51,10 @@
     "dependencies": {
         "@types/react": "^16.9.56",
         "@types/react-dom": "^16.9.9",
+        "@types/react-redux": "^7.1.11",
         "react": "^16.14.0",
         "react-dom": "^16.14.0",
+        "react-redux": "^7.2.2",
         "redux": "^4.0.5",
         "s25-wasm": "../s25-wasm/pkg"
     },
