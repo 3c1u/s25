@@ -164,36 +164,7 @@ where
             return self.unpack_incremental(metadata, buf);
         }
 
-        // non-incrementalな画像エントリーをロードする
-        let mut rows = Vec::with_capacity(metadata.height as usize);
-        for _ in 0..metadata.height {
-            rows.push(self.file.read_i32::<LittleEndian>()? as u32);
-        }
-
-        let mut offset = 0;
-
-        rows.into_iter().try_for_each(|row_offset| -> Result<()> {
-            self.file.seek(SeekFrom::Start(row_offset as u64))?;
-            let row_length = self.file.read_u16::<LittleEndian>()?;
-
-            let row_length = if row_offset & 0x01 != 0 {
-                self.file.read_exact(&mut [0u8])?; // 1バイトだけ読み飛ばす
-                row_length & (!0x01)
-            } else {
-                row_length
-            };
-            let mut decode_buf = vec![0; row_length as usize];
-            self.file.read_exact(&mut decode_buf)?;
-
-            decoder::decode_line(&decode_buf, buf, &mut offset, metadata.width);
-
-            Ok(())
-        })?;
-
-        // すべての行を走査してデコードしていく
-        // for row in rows {
-        //     decoder::decode_line(&row?, buf, &mut offset, metadata.width);
-        // }
+        decoder::unpack_non_incremental(&mut self.file, metadata, buf)?;
 
         Ok(())
     }

@@ -135,7 +135,7 @@ pub fn unpack_non_incremental<R: Read + Seek>(file: &mut R, metadata: &S25ImageM
     file.seek(SeekFrom::Start(metadata.head as u64))?;
 
     // non-incrementalな画像エントリーをロードする
-    let mut rows = &mut [0u32; MAX_HEIGHT][..];
+    let rows = &mut [0u32; MAX_HEIGHT][..];
     for i in 0..metadata.height as usize {
         rows[i] = file.read_u32::<LittleEndian>()?;
     }
