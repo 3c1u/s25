@@ -1,6 +1,6 @@
 [package]
 name = "s25"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Hikaru Terazono (3c1u) <3c1u@vulpesgames.tokyo>"]
 edition = "2018"
 description = "Decoder and encoder for ShiinaRio .S25 format. "
@@ -14,6 +14,7 @@ keywords = ["s25", "image", "decoder", "vn", "shiina-rio"]
 
 [dependencies]
 thiserror = { version = "1.0.20", optional = true }
+s25-core = { path = "../s25-core" }
 
 [features]
 default = ["std"]

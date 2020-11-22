@@ -4,7 +4,6 @@ pub mod utils;
 
 pub(crate) mod reader;
 pub(crate) mod writer;
-pub(crate) mod decoder;
 
 /// Result type.
 pub type Result<T> = core::result::Result<T, Error>;
@@ -46,5 +45,6 @@ impl From<std::io::Error> for Error {
     }
 }
 
-pub use reader::{S25Archive, S25Image, S25ImageMetadata};
+pub use s25_core::format::S25ImageMetadata;
+pub use reader::{S25Archive, S25Image};
 pub use writer::S25Writer;

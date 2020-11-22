@@ -4,7 +4,8 @@ use std::path::Path;
 
 use std::collections::BTreeMap;
 
-use crate::reader::{S25Image, S25ImageMetadata};
+use s25_core::format::S25ImageMetadata;
+use crate::reader::S25Image;
 use crate::{Error, Result};
 
 /// A writer for .S25 format.
