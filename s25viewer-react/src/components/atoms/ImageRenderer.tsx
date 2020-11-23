@@ -13,10 +13,96 @@ interface LayerCache {
     offsetY: number
 }
 
+const redraw = async (
+    theCanvas: HTMLCanvasElement,
+    theBuffer: HTMLCanvasElement,
+    theLayers: LayerCache[],
+    theScale: number,
+    [theX, theY]: [number, number],
+) => {
+    const ctx = theBuffer.getContext('2d')
+    const pctx = theCanvas.getContext('2d')
+
+    if (ctx === null || pctx == null) {
+        return
+    }
+
+    ctx.resetTransform()
+    ctx.clearRect(0, 0, theCanvas.width, theCanvas.height)
+    ctx.translate(theX, theY)
+    ctx.scale(theScale, theScale)
+
+    const ls = await Promise.all(
+        theLayers.map(async l => {
+            const bitmap = await createImageBitmap(l.imageData)
+            return { ...l, bitmap }
+        }),
+    )
+
+    ls.forEach(l => {
+        const { bitmap, offsetX, offsetY } = l
+        ctx.drawImage(bitmap, offsetX, offsetY)
+        bitmap.close()
+    })
+
+    pctx.putImageData(
+        ctx.getImageData(0, 0, theCanvas.width, theCanvas.height),
+        0,
+        0,
+    )
+}
+
+const loadImages = async (s25: S25, theLayers: Layer[]) => {
+    const cachedLayers = await Promise.all(
+        theLayers.map(
+            async (l: Layer): Promise<LayerCache | null> => {
+                if (!l.visible) {
+                    return null
+                }
+
+                const entry = l.id + l.activePictLayer
+                const metadata = s25.get_metadata(entry)
+                if (metadata === undefined) {
+                    return null
+                }
+
+                const offsetX = metadata.offset_x
+                const offsetY = metadata.offset_y
+                const imgWidth = metadata.width
+                const imgHeight = metadata.height
+
+                metadata.free()
+
+                const theImage = s25.decode_rgba(entry)
+                if (theImage === undefined) {
+                    return null
+                }
+
+                const imageData = new ImageData(
+                    new Uint8ClampedArray(theImage),
+                    imgWidth,
+                    imgHeight,
+                )
+
+                return { imageData, offsetX, offsetY }
+            },
+        ),
+    )
+
+    return cachedLayers.filter(v => v !== null) as LayerCache[]
+}
+
 export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
     const [width, setWidth] = React.useState(1)
     const [height, setHeight] = React.useState(1)
+    const [x, setX] = React.useState(0)
+    const [y, setY] = React.useState(0)
     const [scale, setScale] = React.useState(0.5)
+
+    const [isDragging, setDragging] = React.useState(false)
+    const [oldX, setOldX] = React.useState(0)
+    const [oldY, setOldY] = React.useState(0)
+
     const [needsRedraw, setNeedsRedraw] = React.useState(true)
     const [layerCache, setLayerCache] = React.useState([] as LayerCache[])
 
@@ -26,84 +112,6 @@ export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
     )
 
     const [image, layers] = useSelector(s => [s.image, s.layers])
-
-    const redraw = async (
-        theCanvas: HTMLCanvasElement,
-        theBuffer: HTMLCanvasElement,
-        theLayers: LayerCache[],
-        theScale: number,
-    ) => {
-        const ctx = theBuffer.getContext('2d')
-        const pctx = theCanvas.getContext('2d')
-
-        if (ctx === null || pctx == null) {
-            return
-        }
-
-        ctx.resetTransform()
-        ctx.clearRect(0, 0, theCanvas.width, theCanvas.height)
-        ctx.scale(theScale, theScale)
-
-        const ls = await Promise.all(
-            theLayers.map(async l => {
-                const bitmap = await createImageBitmap(l.imageData)
-                return { ...l, bitmap }
-            }),
-        )
-
-        ls.forEach(l => {
-            const { bitmap, offsetX, offsetY } = l
-            ctx.drawImage(bitmap, offsetX, offsetY)
-            bitmap.close()
-        })
-
-        pctx.putImageData(
-            ctx.getImageData(0, 0, theCanvas.width, theCanvas.height),
-            0,
-            0,
-        )
-    }
-
-    const loadImages = async (s25: S25, theLayers: Layer[]) => {
-        const cachedLayers = await Promise.all(
-            theLayers.map(
-                async (l: Layer): Promise<LayerCache | null> => {
-                    if (!l.visible) {
-                        return null
-                    }
-
-                    const entry = l.id + l.activePictLayer
-                    const metadata = s25.get_metadata(entry)
-                    if (metadata === undefined) {
-                        return null
-                    }
-
-                    const offsetX = metadata.offset_x
-                    const offsetY = metadata.offset_y
-                    const imgWidth = metadata.width
-                    const imgHeight = metadata.height
-
-                    metadata.free()
-
-                    const theImage = s25.decode_rgba(entry)
-                    if (theImage === undefined) {
-                        return null
-                    }
-
-                    const imageData = new ImageData(
-                        new Uint8ClampedArray(theImage),
-                        imgWidth,
-                        imgHeight,
-                    )
-
-                    return { imageData, offsetX, offsetY }
-                },
-            ),
-        )
-
-        setLayerCache(cachedLayers.filter(v => v !== null) as LayerCache[])
-        setNeedsRedraw(true)
-    }
 
     React.useEffect(() => {
         setBufferCanvas(document.createElement('canvas'))
@@ -119,9 +127,19 @@ export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
             setNeedsRedraw(false)
             bufferCanvas.width = width
             bufferCanvas.height = height
-            redraw(theCanvas, bufferCanvas, layerCache, scale)
+            redraw(theCanvas, bufferCanvas, layerCache, scale, [x, y])
         }
-    }, [needsRedraw, canvas, bufferCanvas, layerCache, scale, width, height])
+    }, [
+        needsRedraw,
+        canvas,
+        bufferCanvas,
+        layerCache,
+        scale,
+        width,
+        height,
+        x,
+        y,
+    ])
 
     React.useEffect(() => {
         const theCanvas = canvas.current
@@ -153,11 +171,17 @@ export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
     }, [canvas])
 
     React.useEffect(() => {
-        if (image === null) {
-            return
+        const loadImageCache = async () => {
+            if (image === null) {
+                return
+            }
+
+            const theLayerCache = await loadImages(image, layers)
+            setLayerCache(theLayerCache)
+            setNeedsRedraw(true)
         }
 
-        loadImages(image, layers)
+        loadImageCache()
     }, [image, layers])
 
     return (
@@ -172,8 +196,44 @@ export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
             height={height}
             onWheel={event => {
                 event.preventDefault()
-                setScale(scale * 1.03 ** event.deltaY)
+                const scaleDelta = 1.03 ** event.deltaY
+
+                setX(event.clientX + (x - event.clientX) * scaleDelta)
+                setY(event.clientY + (y - event.clientY) * scaleDelta)
+                setScale(scale * scaleDelta)
                 setNeedsRedraw(true)
+            }}
+            onMouseDown={event => {
+                event.preventDefault()
+                setDragging(true)
+                setOldX(event.clientX)
+                setOldY(event.clientY)
+            }}
+            onMouseMove={event => {
+                if (!isDragging) {
+                    return
+                }
+
+                const deltaX = event.clientX - oldX
+                const deltaY = event.clientY - oldY
+
+                setX(x + deltaX)
+                setY(y + deltaY)
+
+                setOldX(event.clientX)
+                setOldY(event.clientY)
+
+                setNeedsRedraw(true)
+            }}
+            onMouseUp={event => {
+                event.preventDefault()
+                setDragging(false)
+            }}
+            onMouseOut={_ => {
+                setDragging(false)
+            }}
+            onBlur={_ => {
+                setDragging(false)
             }}
         />
     )
