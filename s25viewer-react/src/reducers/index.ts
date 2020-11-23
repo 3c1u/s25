@@ -40,6 +40,11 @@ export const closeLayerList = () =>
         type: 'CLOSE_LAYER_LIST',
     } as const)
 
+export const toggleLayerList = () =>
+    ({
+        type: 'TOGGLE_LAYER_LIST',
+    } as const)
+
 export const setVisibility = (id: number, visible: boolean) =>
     ({
         type: 'SET_VISIBILITY',
@@ -58,6 +63,7 @@ type Actions = ReturnType<
     | typeof openImage
     | typeof openLayerList
     | typeof closeLayerList
+    | typeof toggleLayerList
     | typeof setVisibility
     | typeof setPictLayer
 >
@@ -122,6 +128,11 @@ export default function reducer(
                 ),
             }
         }
+        case 'TOGGLE_LAYER_LIST':
+            return {
+                ...currentState,
+                layerListVisible: !currentState.layerListVisible,
+            }
         case 'OPEN_LAYER_LIST':
             return { ...currentState, layerListVisible: true }
         case 'CLOSE_LAYER_LIST':

@@ -7,9 +7,12 @@ import { S25 } from 's25-wasm'
 
 import { useSelector, openImage } from '~/reducers'
 import NoImagePlaceholder from '~/components/molecules/NoImagePlaceholder'
+import ImageRenderer from '~/components/atoms/ImageRenderer'
 
 const useStyles = makeStyles(_ => ({
     root: {
+        display: 'flex',
+        flexDirection: 'column',
         width: '100%',
         flex: '1',
     },
@@ -60,7 +63,7 @@ export default function ImageView(
             }}
         >
             {image !== null ? (
-                <p>{`Image loaded with ${image.total_entries()} entries!`}</p>
+                <ImageRenderer image={image} />
             ) : (
                 <NoImagePlaceholder />
             )}
