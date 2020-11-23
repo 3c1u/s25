@@ -1,5 +1,4 @@
 const path = require('path')
-const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 const outputPath = path.resolve(__dirname, './dist')
@@ -10,7 +9,7 @@ module.exports = {
     entry: './src/index.tsx',
     output: {
         path: outputPath,
-        filename: './dist/bundle.js',
+        filename: './bundle.js',
     },
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.wasm'],
@@ -23,18 +22,7 @@ module.exports = {
             {
                 test: /\.(j|t)sx?$/,
                 exclude: /node_modules/,
-                use: [
-                    {
-                        loader: 'babel-loader',
-                        options: {
-                            plugins: [
-                                isDevelopment &&
-                                    require.resolve('react-refresh/babel'),
-                            ].filter(Boolean),
-                        },
-                    },
-                    { loader: 'ts-loader' },
-                ],
+                use: [{ loader: 'ts-loader' }],
             },
             {
                 test: /\.wasm$/,
@@ -57,7 +45,7 @@ module.exports = {
         hotOnly: true,
         lazy: false,
         overlay: true,
-        liveReload: false,
+        liveReload: isDevelopment,
     },
     experiments: {
         // syncWebAssembly: true,
@@ -66,7 +54,6 @@ module.exports = {
         asset: true,
     },
     plugins: [
-        isDevelopment && new ReactRefreshWebpackPlugin(),
         new HtmlWebpackPlugin({
             template: './public/index.html',
         }),
