@@ -1,0 +1,21 @@
+{
+  "name": "s25-wasm",
+  "collaborators": [
+    "Hikaru Terazono (3c1u) <3c1u@vulpesgames.tokyo>"
+  ],
+  "description": "Decoder and encoder for ShiinaRio .S25 format for WebAssembly. ",
+  "version": "0.2.2",
+  "license": "MIT OR Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/3c1u/s25"
+  },
+  "files": [
+    "s25_wasm_bg.wasm",
+    "s25_wasm.js",
+    "s25_wasm.d.ts"
+  ],
+  "module": "s25_wasm.js",
+  "types": "s25_wasm.d.ts",
+  "sideEffects": false
+}
