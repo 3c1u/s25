@@ -314,28 +314,6 @@ export default function ImageRenderer({
 
                 setNeedsRedraw(true)
             }}
-            onTouchStart={event => {
-                event.preventDefault()
-                setOldX(event.touches[0].clientX)
-                setOldY(event.touches[0].clientY)
-            }}
-            onTouchMove={event => {
-                event.preventDefault()
-
-                const deltaX = event.touches[0].clientX - oldX
-                const deltaY = event.touches[0].clientY - oldY
-
-                setX(x + deltaX)
-                setY(y + deltaY)
-
-                setOldX(event.touches[0].clientX)
-                setOldY(event.touches[0].clientY)
-
-                setNeedsRedraw(true)
-            }}
-            onTouchEnd={event => {
-                event.preventDefault()
-            }}
             onMouseDown={event => {
                 event.preventDefault()
                 setDragging(true)
