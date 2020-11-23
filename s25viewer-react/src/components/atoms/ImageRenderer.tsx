@@ -145,12 +145,15 @@ export default function ImageRenderer({
             return
         }
 
-        if (needsRedraw) {
-            setNeedsRedraw(false)
-            bufferCanvas.width = width
-            bufferCanvas.height = height
-            redraw(theCanvas, bufferCanvas, layerCache, scale, [x, y])
+        if (!needsRedraw) {
+            reqId.current = window.requestAnimationFrame(redrawCallback)
+            return
         }
+
+        setNeedsRedraw(false)
+        bufferCanvas.width = width
+        bufferCanvas.height = height
+        redraw(theCanvas, bufferCanvas, layerCache, scale, [x, y])
 
         reqId.current = window.requestAnimationFrame(redrawCallback)
     }, [
@@ -289,6 +292,10 @@ export default function ImageRenderer({
             height={height}
             onWheel={event => {
                 event.preventDefault()
+
+                if (event.deltaX === 0 && event.deltaY === 0) {
+                    return
+                }
 
                 if (event.ctrlKey || event.altKey) {
                     const scaleDelta =
