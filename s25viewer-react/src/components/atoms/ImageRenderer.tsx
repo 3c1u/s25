@@ -1,8 +1,6 @@
-import { ImageRounded } from '@material-ui/icons'
 import * as React from 'react'
 // eslint-disable-next-line import/no-unresolved
 import { S25 } from 's25-wasm'
-import { cache } from 'webpack'
 import { Layer, useSelector } from '~/reducers'
 
 interface ImageRendererProps {
@@ -10,34 +8,59 @@ interface ImageRendererProps {
 }
 
 interface LayerCache {
-    bitmap: ImageBitmap
+    imageData: ImageData
     offsetX: number
     offsetY: number
 }
 
 export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
-    const [width, setWidth] = React.useState(0)
-    const [height, setHeight] = React.useState(0)
+    const [width, setWidth] = React.useState(1)
+    const [height, setHeight] = React.useState(1)
+    const [scale, setScale] = React.useState(0.5)
     const [needsRedraw, setNeedsRedraw] = React.useState(true)
     const [layerCache, setLayerCache] = React.useState([] as LayerCache[])
 
     const canvas = React.useRef(null as HTMLCanvasElement | null)
+    const [bufferCanvas, setBufferCanvas] = React.useState(
+        null as HTMLCanvasElement | null,
+    )
 
     const [image, layers] = useSelector(s => [s.image, s.layers])
 
-    const redraw = (theCanvas: HTMLCanvasElement, theLayers: LayerCache[]) => {
-        const ctx = theCanvas.getContext('2d')
-        if (ctx === null) {
+    const redraw = async (
+        theCanvas: HTMLCanvasElement,
+        theBuffer: HTMLCanvasElement,
+        theLayers: LayerCache[],
+        theScale: number,
+    ) => {
+        const ctx = theBuffer.getContext('2d')
+        const pctx = theCanvas.getContext('2d')
+
+        if (ctx === null || pctx == null) {
             return
         }
 
+        ctx.resetTransform()
         ctx.clearRect(0, 0, theCanvas.width, theCanvas.height)
+        ctx.scale(theScale, theScale)
 
-        Promise.all(
+        const ls = await Promise.all(
             theLayers.map(async l => {
-                const { bitmap, offsetX, offsetY } = l
-                ctx.drawImage(bitmap, offsetX, offsetY)
+                const bitmap = await createImageBitmap(l.imageData)
+                return { ...l, bitmap }
             }),
+        )
+
+        ls.forEach(l => {
+            const { bitmap, offsetX, offsetY } = l
+            ctx.drawImage(bitmap, offsetX, offsetY)
+            bitmap.close()
+        })
+
+        pctx.putImageData(
+            ctx.getImageData(0, 0, theCanvas.width, theCanvas.height),
+            0,
+            0,
         )
     }
 
@@ -73,9 +96,7 @@ export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
                         imgHeight,
                     )
 
-                    const bitmap = await createImageBitmap(imageData)
-
-                    return { bitmap, offsetX, offsetY }
+                    return { imageData, offsetX, offsetY }
                 },
             ),
         )
@@ -85,16 +106,22 @@ export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
     }
 
     React.useEffect(() => {
+        setBufferCanvas(document.createElement('canvas'))
+    }, [])
+
+    React.useEffect(() => {
         const theCanvas = canvas.current
-        if (theCanvas === null) {
+        if (theCanvas === null || bufferCanvas === null) {
             return
         }
 
         if (needsRedraw) {
             setNeedsRedraw(false)
-            redraw(theCanvas, layerCache)
+            bufferCanvas.width = width
+            bufferCanvas.height = height
+            redraw(theCanvas, bufferCanvas, layerCache, scale)
         }
-    }, [needsRedraw, canvas, layerCache])
+    }, [needsRedraw, canvas, bufferCanvas, layerCache, scale, width, height])
 
     React.useEffect(() => {
         const theCanvas = canvas.current
@@ -105,13 +132,13 @@ export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
         }
 
         const updateSize = () => {
-            setWidth(0)
-            setHeight(0)
+            setWidth(1)
+            setHeight(1)
 
             // HACK: fit to the parent element
             setTimeout(() => {
-                setWidth(theCanvas.offsetWidth ?? 0)
-                setHeight(theCanvas.offsetHeight ?? 0)
+                setWidth(theCanvas.offsetWidth ?? 1)
+                setHeight(theCanvas.offsetHeight ?? 1)
                 setNeedsRedraw(true)
             }, 100)
         }
@@ -143,6 +170,11 @@ export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
             }}
             width={width}
             height={height}
+            onWheel={event => {
+                event.preventDefault()
+                setScale(scale * 1.03 ** event.deltaY)
+                setNeedsRedraw(true)
+            }}
         />
     )
 }
