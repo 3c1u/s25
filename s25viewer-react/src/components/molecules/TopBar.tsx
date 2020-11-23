@@ -1,9 +1,16 @@
 import * as React from 'react'
 
-import { AppBar, Toolbar, Typography, IconButton, Tooltip } from '@material-ui/core'
+import {
+    AppBar,
+    Toolbar,
+    Typography,
+    IconButton,
+    Tooltip,
+} from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'
 import OpenIcon from '@material-ui/icons/FolderOpen'
 import { useDispatch } from 'react-redux'
+// eslint-disable-next-line import/no-unresolved
 import { S25 } from 's25-wasm'
 import { openImage } from '~/reducers'
 
