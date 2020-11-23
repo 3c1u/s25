@@ -290,7 +290,7 @@ export default function ImageRenderer({
             onWheel={event => {
                 event.preventDefault()
 
-                if (event.ctrlKey) {
+                if (event.ctrlKey || event.altKey) {
                     const scaleDelta =
                         1.0 +
                         Math.min(Math.max(0.003 * event.deltaY, -0.2), 0.2)
@@ -303,7 +303,7 @@ export default function ImageRenderer({
                 }
 
                 setX(x - 2.0 * event.deltaX)
-                setY(y - 2.0 *event.deltaY)
+                setY(y - 2.0 * event.deltaY)
 
                 setNeedsRedraw(true)
             }}
