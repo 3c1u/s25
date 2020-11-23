@@ -23,9 +23,22 @@
         "sourceType": "module",
         "project": "./tsconfig.json"
     },
-    "plugins": ["react", "@typescript-eslint", "prettier", "react-hooks"],
+    "plugins": [
+        "react",
+        "@typescript-eslint",
+        "prettier",
+        "react-hooks"
+    ],
     "rules": {
-        "react/jsx-filename-extension": [2, { "extensions": [".tsx", ".jsx"] }],
+        "react/jsx-filename-extension": [
+            2,
+            {
+                "extensions": [
+                    ".tsx",
+                    ".jsx"
+                ]
+            }
+        ],
         "@typescript-eslint/triple-slash-reference": "off",
         "import/extensions": [
             "error",
@@ -45,13 +58,24 @@
         ],
         "react-hooks/rules-of-hooks": "error",
         "react-hooks/exhaustive-deps": "error",
-        "no-use-before-define": [0],
-        "@typescript-eslint/no-use-before-define": [1],
+        "no-use-before-define": [
+            0
+        ],
+        "@typescript-eslint/no-use-before-define": [
+            1
+        ],
         "react/require-default-props": "off",
         "@typescript-eslint/explicit-module-boundary-types": [
             "warn",
             {
                 "allowDirectConstAssertionInArrowFunctions": true
+            }
+        ],
+        "no-shadow": [
+            "error",
+            {
+                "builtinGlobals": false,
+                "allow": ["_"]
             }
         ]
     },
@@ -59,7 +83,10 @@
         "import/resolver": {
             "parcel": {
                 "rootDir": "src",
-                "extensions": [".ts", ".tsx"]
+                "extensions": [
+                    ".ts",
+                    ".tsx"
+                ]
             }
         }
     }

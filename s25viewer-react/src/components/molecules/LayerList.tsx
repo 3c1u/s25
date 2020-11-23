@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Collapse, Drawer, List } from '@material-ui/core'
+import { Drawer, List } from '@material-ui/core'
 import { useDispatch } from 'react-redux'
 
 import LayerItem from '~/components/molecules/LayerItem'
