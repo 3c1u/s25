@@ -1,5 +1,6 @@
 const path = require('path')
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 const outputPath = path.resolve(__dirname, './dist')
 const isDevelopment = process.env.NODE_ENV !== 'production'
@@ -40,6 +41,10 @@ module.exports = {
                 type: 'javascript/auto',
                 loader: 'file-loader',
             },
+            {
+                test: /\.html$/,
+                loader: 'html-loader',
+            },
         ],
     },
     devServer: {
@@ -60,5 +65,10 @@ module.exports = {
         topLevelAwait: true,
         asset: true,
     },
-    plugins: [isDevelopment && new ReactRefreshWebpackPlugin()].filter(Boolean),
+    plugins: [
+        isDevelopment && new ReactRefreshWebpackPlugin(),
+        new HtmlWebpackPlugin({
+            template: './public/index.html',
+        }),
+    ].filter(Boolean),
 }
