@@ -15,13 +15,17 @@ export interface Layer {
 export interface RootState {
     image: S25 | null
     layers: Layer[]
+    backgroundColor: string
     layerListVisible: boolean
+    colorPickerVisible: boolean
 }
 
-const initialState: RootState = {
+export const initialState: RootState = {
     image: null,
     layers: [],
+    backgroundColor: 'rgba(255, 255, 255, 100)',
     layerListVisible: false,
+    colorPickerVisible: false,
 }
 
 export const openImage = (image?: S25 | null) =>
@@ -45,6 +49,12 @@ export const toggleLayerList = () =>
         type: 'TOGGLE_LAYER_LIST',
     } as const)
 
+export const setColorPickerVisible = (flag: boolean) =>
+    ({
+        type: 'SET_COLOR_PICKER_VISIBLE',
+        flag,
+    } as const)
+
 export const setVisibility = (id: number, visible: boolean) =>
     ({
         type: 'SET_VISIBILITY',
@@ -59,13 +69,21 @@ export const setPictLayer = (id: number, pictLayer: number) =>
         pictLayer,
     } as const)
 
+export const setBackgroundColor = (color: string) =>
+    ({
+        type: 'SET_BACKGROUND_COLOR',
+        color,
+    } as const)
+
 type Actions = ReturnType<
     | typeof openImage
     | typeof openLayerList
     | typeof closeLayerList
     | typeof toggleLayerList
+    | typeof setColorPickerVisible
     | typeof setVisibility
     | typeof setPictLayer
+    | typeof setBackgroundColor
 >
 
 export default function reducer(
@@ -137,6 +155,10 @@ export default function reducer(
             return { ...currentState, layerListVisible: true }
         case 'CLOSE_LAYER_LIST':
             return { ...currentState, layerListVisible: false }
+        case 'SET_BACKGROUND_COLOR':
+            return { ...currentState, backgroundColor: action.color }
+        case 'SET_COLOR_PICKER_VISIBLE':
+            return { ...currentState, colorPickerVisible: action.flag }
         default:
             break
     }

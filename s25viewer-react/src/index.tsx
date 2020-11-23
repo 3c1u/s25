@@ -4,7 +4,7 @@ import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles'
-import { blue, teal } from '@material-ui/core/colors'
+import { teal } from '@material-ui/core/colors'
 import { CssBaseline } from '@material-ui/core'
 
 import { createStore } from 'redux'
@@ -18,7 +18,9 @@ import App from './components/organisms/App'
 
 const theme = createMuiTheme({
     palette: {
-        primary: blue,
+        primary: {
+            main: '#ec407a',
+        },
         secondary: teal,
         type: 'dark',
     },

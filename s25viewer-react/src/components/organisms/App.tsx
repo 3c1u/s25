@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Divider, makeStyles, useMediaQuery, useTheme } from '@material-ui/core'
+import ColorPicker from '~/components/molecules/ColorPicker'
 import TopBar from '~/components/molecules/TopBar'
 import LayerList from '~/components/molecules/LayerList'
 import Actions from '~/components/molecules/Actions'
@@ -55,6 +56,7 @@ export default function App(_props: Record<string, unknown>): JSX.Element {
             </div>
             <Divider />
             <LayerList drawer={!matches} />
+            <ColorPicker />
         </div>
     )
 }

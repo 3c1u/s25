@@ -26,7 +26,11 @@ export default function ImageView(
 ): JSX.Element {
     const classes = useStyles()
     const [dragEntered, setDragEntered] = React.useState(false)
-    const image = useSelector(rootState => rootState.image)
+    const [image, layers, backgroundColor] = useSelector(rootState => [
+        rootState.image,
+        rootState.layers,
+        rootState.backgroundColor,
+    ])
     const dispatch = useDispatch()
 
     return (
@@ -63,7 +67,11 @@ export default function ImageView(
             }}
         >
             {image !== null ? (
-                <ImageRenderer image={image} />
+                <ImageRenderer
+                    image={image}
+                    layers={layers}
+                    backgroundColor={backgroundColor}
+                />
             ) : (
                 <NoImagePlaceholder />
             )}

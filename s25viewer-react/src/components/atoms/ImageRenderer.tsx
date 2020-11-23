@@ -1,10 +1,12 @@
 import * as React from 'react'
 // eslint-disable-next-line import/no-unresolved
 import { S25 } from 's25-wasm'
-import { Layer, useSelector } from '~/reducers'
+import { Layer } from '~/reducers'
 
 interface ImageRendererProps {
     image: S25
+    layers: Layer[]
+    backgroundColor: string
 }
 
 interface LayerCache {
@@ -92,7 +94,11 @@ const loadImages = async (s25: S25, theLayers: Layer[]) => {
     return cachedLayers.filter(v => v !== null) as LayerCache[]
 }
 
-export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
+export default function ImageRenderer({
+    image,
+    layers,
+    backgroundColor,
+}: ImageRendererProps): JSX.Element {
     const [width, setWidth] = React.useState(1)
     const [height, setHeight] = React.useState(1)
     const [x, setX] = React.useState(0)
@@ -110,8 +116,6 @@ export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
     const [bufferCanvas, setBufferCanvas] = React.useState(
         null as HTMLCanvasElement | null,
     )
-
-    const [image, layers] = useSelector(s => [s.image, s.layers])
 
     React.useEffect(() => {
         setBufferCanvas(document.createElement('canvas'))
@@ -189,8 +193,9 @@ export default function ImageRenderer(_props: ImageRendererProps): JSX.Element {
             ref={canvas}
             style={{
                 display: 'block',
-                backgroundColor: '#000',
+                backgroundColor,
                 flexGrow: 1,
+                zIndex: 0,
             }}
             width={width}
             height={height}
