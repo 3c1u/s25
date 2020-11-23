@@ -15,6 +15,24 @@ interface LayerCache {
     offsetY: number
 }
 
+const createImageBitmapPonyfill =
+    window.createImageBitmap ??
+    (async (data: ImageData) => {
+        return new Promise((resolve, _reject) => {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+            canvas.width = data.width
+            canvas.height = data.height
+            ctx?.putImageData(data, 0, 0)
+
+            const img = document.createElement('img')
+            img.addEventListener('load', () => {
+                resolve(this)
+            })
+            img.src = canvas.toDataURL()
+        })
+    })
+
 const redraw = async (
     theCanvas: HTMLCanvasElement,
     theBuffer: HTMLCanvasElement,
@@ -36,7 +54,7 @@ const redraw = async (
 
     const ls = await Promise.all(
         theLayers.map(async l => {
-            const bitmap = await createImageBitmap(l.imageData)
+            const bitmap = await createImageBitmapPonyfill(l.imageData)
             return { ...l, bitmap }
         }),
     )
@@ -44,7 +62,9 @@ const redraw = async (
     ls.forEach(l => {
         const { bitmap, offsetX, offsetY } = l
         ctx.drawImage(bitmap, offsetX, offsetY)
-        bitmap.close()
+        if (bitmap.close !== undefined) {
+            bitmap.close()
+        }
     })
 
     pctx.putImageData(
