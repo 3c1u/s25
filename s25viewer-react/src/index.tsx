@@ -42,7 +42,13 @@ document.addEventListener(
     event => event.preventDefault(),
     false,
 )
+
 document.addEventListener('gestureend', event => event.preventDefault(), false)
+
+// HACK: for iOS Safari; this hides the address bar
+setTimeout(() => {
+    window.scrollTo(0, 1)
+}, 1000)
 
 const run = async () => {
     await init(wasm)
