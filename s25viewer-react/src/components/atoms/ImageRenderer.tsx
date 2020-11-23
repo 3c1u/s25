@@ -190,6 +190,9 @@ export default function ImageRenderer({
             setX(x + deltaX)
             setY(y + deltaY)
 
+            setOldX(event.pageX)
+            setOldY(event.pageY)
+
             setX(event.pageX + (x - event.pageX) * deltaScale)
             setY(event.pageY + (y - event.pageY) * deltaScale)
 
@@ -199,6 +202,7 @@ export default function ImageRenderer({
         },
         [scale, oldScale, x, y, oldX, oldY],
     )
+
     React.useEffect(() => {
         const theCanvas = canvas.current
         if (theCanvas === null) {
@@ -285,12 +289,22 @@ export default function ImageRenderer({
             height={height}
             onWheel={event => {
                 event.preventDefault()
-                const scaleDelta =
-                    1.0 + Math.min(Math.max(0.003 * event.deltaY, -0.2), 0.2)
 
-                setX(event.clientX + (x - event.clientX) * scaleDelta)
-                setY(event.clientY + (y - event.clientY) * scaleDelta)
-                setScale(scale * scaleDelta)
+                if (event.ctrlKey) {
+                    const scaleDelta =
+                        1.0 +
+                        Math.min(Math.max(0.003 * event.deltaY, -0.2), 0.2)
+
+                    setX(event.clientX + (x - event.clientX) * scaleDelta)
+                    setY(event.clientY + (y - event.clientY) * scaleDelta)
+                    setScale(scale * scaleDelta)
+                    setNeedsRedraw(true)
+                    return
+                }
+
+                setX(x - 2.0 * event.deltaX)
+                setY(y - 2.0 *event.deltaY)
+
                 setNeedsRedraw(true)
             }}
             onTouchMove={event => {
