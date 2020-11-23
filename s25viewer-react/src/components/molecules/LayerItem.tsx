@@ -1,4 +1,4 @@
-import React, { ChangeEvent } from 'react'
+import React from 'react'
 import {
     ListItem,
     ListItemIcon,
@@ -16,6 +16,7 @@ interface LayerItemProps {
     name?: string
     visible?: boolean
     value?: number
+    values: number[]
     onVisiblilityChange?(value: boolean): void
     onChange?(value: number): void
 }
@@ -24,6 +25,7 @@ export default function LayerItem({
     name: propsName = 'Layer',
     visible: propsVisible,
     value: propsValue,
+    values: propsValues,
     onVisiblilityChange,
     onChange,
 }: LayerItemProps): JSX.Element {
@@ -81,7 +83,7 @@ export default function LayerItem({
                     <MenuItem value={-1} disabled>
                         <em>Select...</em>
                     </MenuItem>
-                    {Array.from(Array(10), (_, k) => (
+                    {propsValues.map(k => (
                         <MenuItem value={k} key={k}>
                             {`${k}`}
                         </MenuItem>
