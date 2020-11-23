@@ -51,12 +51,7 @@ export default function TopBar(_props: Record<string, unknown>): JSX.Element {
 
     return (
         <div className={classes.root}>
-            <input
-                ref={filePicker}
-                type="file"
-                style={{ display: 'none' }}
-                accept=".s25, image/x-shiinario"
-            />
+            <input ref={filePicker} type="file" style={{ display: 'none' }} />
             <AppBar position="static">
                 <Toolbar>
                     <Typography variant="h6" className={classes.title}>
