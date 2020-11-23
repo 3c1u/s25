@@ -24,12 +24,7 @@ const createImageBitmapPonyfill =
             canvas.width = data.width
             canvas.height = data.height
             ctx?.putImageData(data, 0, 0)
-
-            const img = document.createElement('img')
-            img.addEventListener('load', () => {
-                resolve(this)
-            })
-            img.src = canvas.toDataURL()
+            resolve(canvas)
         })
     })
 
@@ -124,6 +119,7 @@ export default function ImageRenderer({
     const [x, setX] = React.useState(0)
     const [y, setY] = React.useState(0)
     const [scale, setScale] = React.useState(0.5)
+    const [oldScale, setOldScale] = React.useState(1.0)
 
     const [isDragging, setDragging] = React.useState(false)
     const [oldX, setOldX] = React.useState(0)
@@ -141,7 +137,9 @@ export default function ImageRenderer({
         setBufferCanvas(document.createElement('canvas'))
     }, [])
 
-    React.useEffect(() => {
+    const reqId = React.useRef(null as number | null)
+
+    const redrawCallback = React.useCallback(() => {
         const theCanvas = canvas.current
         if (theCanvas === null || bufferCanvas === null) {
             return
@@ -153,9 +151,12 @@ export default function ImageRenderer({
             bufferCanvas.height = height
             redraw(theCanvas, bufferCanvas, layerCache, scale, [x, y])
         }
+
+        reqId.current = window.requestAnimationFrame(redrawCallback)
     }, [
         needsRedraw,
         canvas,
+        reqId,
         bufferCanvas,
         layerCache,
         scale,
@@ -164,6 +165,69 @@ export default function ImageRenderer({
         x,
         y,
     ])
+
+    React.useEffect(() => {
+        reqId.current = window.requestAnimationFrame(redrawCallback)
+        return () => {
+            if (reqId.current !== null) {
+                window.cancelAnimationFrame(reqId.current)
+            }
+        }
+    }, [redrawCallback, reqId])
+
+    const handleGesture = React.useCallback(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (event: any) => {
+            event.preventDefault()
+
+            const theScale = event.scale ?? 1.0
+            const deltaScale = theScale / oldScale
+            const newScale = scale * deltaScale
+
+            const deltaX = event.pageX - oldX
+            const deltaY = event.pageY - oldY
+
+            setX(x + deltaX)
+            setY(y + deltaY)
+
+            setX(event.pageX + (x - event.pageX) * deltaScale)
+            setY(event.pageY + (y - event.pageY) * deltaScale)
+
+            setScale(newScale)
+            setOldScale(theScale)
+            setNeedsRedraw(true)
+        },
+        [scale, oldScale, x, y, oldX, oldY],
+    )
+    React.useEffect(() => {
+        const theCanvas = canvas.current
+        if (theCanvas === null) {
+            return () => {
+                // do nothing
+            }
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const gestureStart = (event: any) => {
+            event.preventDefault()
+            const theScale = event.scale ?? 1.0
+            setOldScale(theScale)
+            setOldX(event.pageX)
+            setOldY(event.pageY)
+        }
+        const gestureChange = (event: Event) => handleGesture(event)
+        const gestureEnd = (event: Event) => event.preventDefault()
+
+        theCanvas.addEventListener('gesturestart', gestureStart, false)
+        theCanvas.addEventListener('gesturechange', gestureChange, false)
+        theCanvas.addEventListener('gestureend', gestureEnd, false)
+
+        return () => {
+            theCanvas.removeEventListener('gesturestart', gestureStart, false)
+            theCanvas.removeEventListener('gesturechange', gestureChange, false)
+            theCanvas.removeEventListener('gestureend', gestureEnd, false)
+        }
+    }, [canvas, handleGesture])
 
     React.useEffect(() => {
         const theCanvas = canvas.current
@@ -221,12 +285,16 @@ export default function ImageRenderer({
             height={height}
             onWheel={event => {
                 event.preventDefault()
-                const scaleDelta = 1.03 ** event.deltaY
+                const scaleDelta =
+                    1.0 + Math.min(Math.max(0.003 * event.deltaY, -0.2), 0.2)
 
                 setX(event.clientX + (x - event.clientX) * scaleDelta)
                 setY(event.clientY + (y - event.clientY) * scaleDelta)
                 setScale(scale * scaleDelta)
                 setNeedsRedraw(true)
+            }}
+            onTouchMove={event => {
+                event.preventDefault()
             }}
             onMouseDown={event => {
                 event.preventDefault()

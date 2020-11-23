@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference path='./global.d.ts'/>
 
 import * as React from 'react'
@@ -25,6 +26,23 @@ const theme = createMuiTheme({
         type: 'dark',
     },
 })
+
+// HACK: for Safari; this disables bounce-back scroll effect
+document.ontouchmove = event => {
+    event.preventDefault()
+}
+
+document.addEventListener(
+    'gesturestart',
+    event => event.preventDefault(),
+    false,
+)
+document.addEventListener(
+    'gesturechange',
+    event => event.preventDefault(),
+    false,
+)
+document.addEventListener('gestureend', event => event.preventDefault(), false)
 
 const run = async () => {
     await init(wasm)
