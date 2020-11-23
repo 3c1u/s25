@@ -1,9 +1,11 @@
-const path = require('path');
+const path = require('path')
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin')
 
-const outputPath = path.resolve(__dirname, './dist');
+const outputPath = path.resolve(__dirname, './dist')
+const isDevelopment = process.env.NODE_ENV !== 'production'
 
 module.exports = {
-    mode: 'development',
+    mode: isDevelopment ? 'development' : 'production',
     entry: './src/index.tsx',
     output: {
         path: outputPath,
@@ -18,22 +20,45 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.tsx?$/,
+                test: /\.(j|t)sx?$/,
+                exclude: /node_modules/,
                 use: [
-                    { loader: 'ts-loader' }
-                ]
+                    {
+                        loader: 'babel-loader',
+                        options: {
+                            plugins: [
+                                isDevelopment &&
+                                    require.resolve('react-refresh/babel'),
+                            ].filter(Boolean),
+                        },
+                    },
+                    { loader: 'ts-loader' },
+                ],
             },
             {
                 test: /\.wasm$/,
-                type: "javascript/auto",
+                type: 'javascript/auto',
                 loader: 'file-loader',
-            }
-        ]
+            },
+        ],
+    },
+    devServer: {
+        contentBase: './public',
+        watchContentBase: true,
+        inline: true,
+        hot: isDevelopment,
+        historyApiFallback: true,
+        compress: true,
+        hotOnly: true,
+        lazy: false,
+        overlay: true,
+        liveReload: false,
     },
     experiments: {
         // syncWebAssembly: true,
         // asyncWebAssembly: true,
         topLevelAwait: true,
-        asset: true
+        asset: true,
     },
-};
+    plugins: [isDevelopment && new ReactRefreshWebpackPlugin()].filter(Boolean),
+}

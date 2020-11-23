@@ -12,7 +12,7 @@ extern crate wasm_bindgen;
 pub mod io;
 
 use byteorder::LittleEndian;
-use js_sys::{Uint8Array, Int32Array};
+use js_sys::{Int32Array, Uint8Array};
 use wasm_bindgen::prelude::*;
 
 use crate::io::{ArrayCursor, Read};
@@ -33,6 +33,24 @@ extern "C" {
 pub struct S25 {
     cursor: ArrayCursor,
     entries: Vec<Option<i32>>,
+}
+
+#[wasm_bindgen]
+#[derive(Copy, Clone)]
+// Metadata.
+pub struct Metadata {
+    /// Width.
+    pub width: i32,
+    /// Height.
+    pub height: i32,
+    /// X-axis value of the image offset.
+    pub offset_x: i32,
+    /// Y-axis value of the image offset.
+    pub offset_y: i32,
+    /// Whether the image uses incremental encoding.
+    pub incremental: bool,
+    /// Position of image.
+    pub head: i32,
 }
 
 #[wasm_bindgen]
@@ -87,6 +105,33 @@ impl S25 {
         Some(Int32Array::from(size))
     }
 
+    pub fn get_metadata(&mut self, entry: u32) -> Option<Metadata> {
+        use s25_core::format::S25ImageMetadata;
+
+        if !self.exists(entry) {
+            return None;
+        }
+
+        let offset = self.entries.get(entry as usize).unwrap().unwrap();
+        let S25ImageMetadata {
+            width,
+            height,
+            offset_x,
+            offset_y,
+            incremental,
+            head,
+        } = S25ImageMetadata::read_from(&mut self.cursor, offset).ok()?;
+
+        Some(Metadata {
+            width,
+            height,
+            offset_x,
+            offset_y,
+            incremental,
+            head,
+        })
+    }
+
     pub fn decode(&mut self, entry: u32) -> Option<Uint8Array> {
         use s25_core::format::S25ImageMetadata;
 
@@ -120,7 +165,7 @@ impl S25 {
 
         for i in 0..(buf.len() >> 2) {
             let offset = i << 2;
-            if let [ b, g, r, a] = buf[offset..][..4] {
+            if let [b, g, r, a] = buf[offset..][..4] {
                 buf[offset] = r;
                 buf[offset + 1] = g;
                 buf[offset + 2] = b;
