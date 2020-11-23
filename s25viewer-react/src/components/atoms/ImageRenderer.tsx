@@ -190,14 +190,14 @@ export default function ImageRenderer({
             const deltaX = event.pageX - oldX
             const deltaY = event.pageY - oldY
 
-            setX(x + deltaX)
-            setY(y + deltaY)
+            const newX = x + deltaX
+            const newY = y + deltaY
 
             setOldX(event.pageX)
             setOldY(event.pageY)
 
-            setX(event.pageX + (x - event.pageX) * deltaScale)
-            setY(event.pageY + (y - event.pageY) * deltaScale)
+            setX(event.pageX + (newX - event.pageX) * deltaScale)
+            setY(event.pageY + (newY - event.pageY) * deltaScale)
 
             setScale(newScale)
             setOldScale(theScale)
