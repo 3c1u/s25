@@ -146,16 +146,23 @@ export default function ImageRenderer({
         }
 
         if (!needsRedraw) {
+            return
+        }
+
+        if (reqId.current === null) {
             reqId.current = window.requestAnimationFrame(redrawCallback)
             return
         }
 
-        setNeedsRedraw(false)
-        bufferCanvas.width = width
-        bufferCanvas.height = height
-        redraw(theCanvas, bufferCanvas, layerCache, scale, [x, y])
+        reqId.current = null
 
-        reqId.current = window.requestAnimationFrame(redrawCallback)
+        if (bufferCanvas.width !== width || bufferCanvas.height !== height) {
+            bufferCanvas.width = width
+            bufferCanvas.height = height
+        }
+
+        setNeedsRedraw(false)
+        redraw(theCanvas, bufferCanvas, layerCache, scale, [x, y])
     }, [
         needsRedraw,
         canvas,
