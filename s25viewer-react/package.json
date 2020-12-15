@@ -7,7 +7,7 @@
     "author": "Hikaru Terazono (3c1u)",
     "license": "MIT",
     "devDependencies": {
-        "@typescript-eslint/eslint-plugin": "^4.9.0",
+        "@typescript-eslint/eslint-plugin": "^4.10.0",
         "@typescript-eslint/parser": "^4.9.0",
         "@wasm-tool/wasm-pack-plugin": "^1.3.1",
         "autoprefixer": "^9.8.6",
