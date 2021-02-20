@@ -3,6 +3,10 @@
 #[macro_use]
 extern crate clap;
 
+pub mod composite;
+pub mod image;
+pub mod utils;
+
 use std::fs::File;
 use std::path::Path;
 
@@ -15,11 +19,18 @@ fn main() {
         (about: "Extracts an .S25 archive.")
         (@arg INPUT: +required "Sets the input file")
         (@arg OUTPUT: -o --output +takes_value +required "Path to output")
+        (@arg COMPOSITE: +takes_value "Composites the image. Pass the layer number like: 1,100,113")
     )
     .get_matches();
 
     let input = Path::new(matches.value_of("INPUT").unwrap());
     let output = Path::new(matches.value_of("OUTPUT").unwrap());
+    let composite = matches.value_of("COMPOSITE");
+
+    if let Some(composite) = composite {
+
+        return composite::main(input, output, composite);
+    }
 
     std::fs::create_dir_all(output).expect("failed to create the directory");
 
@@ -48,7 +59,6 @@ fn main() {
     }
 }
 
-/*
 #[test]
 fn append_susuko() {
     use s25::S25Writer;
@@ -94,4 +104,3 @@ fn append_susuko() {
         }
     }
 }
- */
