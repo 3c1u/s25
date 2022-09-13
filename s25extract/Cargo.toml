@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 s25 = { path = "../s25" }
-clap = "2.33.1"
+clap = "3.2.21"
 png = "0.16.3"
